@@ -1,4 +1,4 @@
-# 木子工作台 Mobile（手机原型 v0.1）
+# Lee悦时间安排（手机 PWA）
 
 基于 TianyiDataScience/my-own-app（桌面版 React+Fastify+SQLite）做的**手机离线 PWA 原型**。单文件 `index.html`（无依赖、无在线字体/图片/图标、无账号、无云）。
 
@@ -55,6 +55,9 @@
 **数据字段**：时间沿用桌面版 `plan_items` 的 `start_time` + `estimated_minutes`（结束时间 = 开始 + 时长，不另存）。新增的手机专用字段放在 `planItems` 记录里：`remind_at_end`(0/1)、`remind_before_minutes`(0/5/10)、`reminder_snooze_until`、`reminder_ack_at`。桌面版导入时会忽略这些字段（导入结果里列为忽略字段），不影响其他数据；导出 `_meta.mobileOnlyFields` 中有说明。
 
 **更新已添加到主屏幕的旧版本**：联网时从主屏幕打开一次 App，彻底关闭（上滑划掉）后再打开即为新版（Service Worker 缓存已升级为 v2，页面改为联网优先）。若仍是旧版：Safari 打开网址刷新一次后再从主屏幕打开。数据保存在本机，更新不会丢失（仍建议先导出备份）。
+
+## 改名说明（v0.3）
+App 已更名为「Lee悦时间安排」。导出文件名改为 `lee-time-export-日期.json`；旧版导出的 `muzi-mobile-*.json` 仍可直接导入。本机存储 key 未改，升级不会丢数据。已添加到主屏幕的旧图标名字不会自动改变，请删除后重新「添加到主屏幕」（删除前先导出备份更稳妥）。
 
 ## 部署说明
 图标以 base64 文本（`icons/*.png.b64`）提交，GitHub Actions（`.github/workflows/pages.yml`）构建时解码为 PNG 并发布到 GitHub Pages。

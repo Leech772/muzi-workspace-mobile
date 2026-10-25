@@ -4,12 +4,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
-<meta name="apple-mobile-web-app-title" content="木子工作台"/>
+<meta name="apple-mobile-web-app-title" content="Lee悦时间安排"/>
 <meta name="theme-color" content="#f4f5f7"/>
 <link rel="manifest" href="manifest.webmanifest"/>
 <link rel="icon" href="icons/favicon-64-v1.png"/>
 <link rel="apple-touch-icon" href="icons/icon-180.png"/>
-<title>木子工作台 Mobile</title>
+<title>Lee悦时间安排</title>
 <style>
 :root{--bg:#f4f5f7;--card:rgba(255,255,255,.78);--fg:#1d2230;--mut:#6b7385;--ac:#4f6bed;--ok:#1f9d63;--warn:#d97706;--bad:#d64545;--bd:rgba(20,30,60,.10);--r:16px;--sh:0 6px 24px rgba(30,40,80,.08);--blur:blur(18px);--font:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;--bw:1px}
 [data-theme=dark]{--bg:#0f1218;--card:rgba(32,37,48,.78);--fg:#e9ecf3;--mut:#9aa3b5;--ac:#7c93ff;--bd:rgba(255,255,255,.10);--sh:0 6px 24px rgba(0,0,0,.35)}
@@ -73,7 +73,7 @@ nav.tabs a .i{font-size:22px;line-height:1}nav.tabs a.on{color:var(--ac);font-we
 @keyframes ring{0%,100%{transform:rotate(0)}25%{transform:rotate(-14deg)}75%{transform:rotate(14deg)}}
 </style></head>
 <body>
-<header><button class="back" id="back" hidden>‹ 返回</button><img src="icons/muzi-mark.svg" alt=""/><h1 id="title">木子工作台</h1><button class="ib" id="themeBtn" aria-label="切换深浅色">◐</button></header>
+<header><button class="back" id="back" hidden>‹ 返回</button><img src="icons/muzi-mark.svg" alt=""/><h1 id="title">Lee悦时间安排</h1><button class="ib" id="themeBtn" aria-label="切换深浅色">◐</button></header>
 <main id="app"></main>
 <nav class="tabs" id="tabs"></nav>
 <script>
@@ -259,19 +259,19 @@ V.settings=()=>{const n=COLS.reduce((s,c)=>s+live(c).length,0);const sz=(localSt
  <p class="mut">导出格式与桌面版导出 zip 内 <b>all-data.json</b> 一致，可互相导入（桌面版 zip 需先解压取出 all-data.json）。导入会<b>覆盖</b>本机数据，导入前自动下载一份当前备份。</p>
  <input type="file" id="file" accept="application/json,.json" hidden/>
  <button class="btn bad" id="clr" style="width:100%;margin-top:6px">清空全部数据</button></div>
- <div class="card"><h2>关于</h2><p class="mut">木子工作台 Mobile 原型 v0.2（任务结束提醒） · 离线 PWA · ${navigator.storage&&navigator.storage.persist?'<span id="pst">检查持久化…</span>':''}</p></div>`};
+ <div class="card"><h2>关于</h2><p class="mut">Lee悦时间安排 v0.3（个人时间与生活安排） · 离线 PWA · ${navigator.storage&&navigator.storage.persist?'<span id="pst">检查持久化…</span>':''}</p></div>`};
 function download(name,text){const b=new Blob([text],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
-function exportObj(){const o={};COLS.forEach(c=>o[c]=D[c].slice());/* 含软删除记录，便于桌面版合并删除 */o.settings=D.settings;o.trash=D.trash.filter(t=>get(t.collection,t.entity_id)?.deleted_at);o._meta={exportedAt:now(),app:'MuziWorkspace',source:'mobile',formatVersion:1,mobileOnlyFields:{planItems:['remind_at_end','remind_before_minutes','reminder_snooze_until','reminder_ack_at']}};return o}
+function exportObj(){const o={};COLS.forEach(c=>o[c]=D[c].slice());/* 含软删除记录，便于桌面版合并删除 */o.settings=D.settings;o.trash=D.trash.filter(t=>get(t.collection,t.entity_id)?.deleted_at);o._meta={exportedAt:now(),app:'LeeYueTime',compatibleWith:'MuziWorkspace',source:'mobile',formatVersion:1,mobileOnlyFields:{planItems:['remind_at_end','remind_before_minutes','reminder_snooze_until','reminder_ack_at']}};return o}
 B.settings=()=>{$('#sndTog').onclick=()=>{D.settings.reminderSound=D.settings.reminderSound===false;save();render()};$('#vol').onchange=e=>{D.settings.reminderVolume=+e.target.value;save()};$('#tryS').onclick=()=>{unlockAudio();beep();setTimeout(beep,700)};
  $('#nreq').onclick=async()=>{if(!('Notification' in window)){alert('当前浏览器不支持通知。iOS 需 16.4+，并先“添加到主屏幕”后从主屏幕图标打开。');return}const r=await Notification.requestPermission();$('#nst').textContent=notifStatus();toast(r==='granted'?'已开启通知':'未授权通知')};
  $('#testRem').onclick=()=>{unlockAudio();TEST_REM={id:'__test__',title:'测试提醒',due:Date.now()+10000};setTimeout(checkReminders,10050);toast('10 秒后触发测试提醒，可切到后台试试');};
 on('[data-ap]','click',el=>{D.settings.appearance=el.dataset.ap;save();applyLook();render()});on('[data-th]','click',el=>{D.settings.theme=el.dataset.th;save();applyLook();render()});
  const ts=()=>now().replace(/[:.]/g,'-');
- $('#exp').onclick=()=>{download('muzi-mobile-'+ts()+'.json',JSON.stringify(exportObj(),null,2));toast('已导出')};
+ $('#exp').onclick=()=>{download('lee-time-export-'+ts()+'.json',JSON.stringify(exportObj(),null,2));toast('已导出')};
  $('#imp').onclick=()=>$('#file').click();
- $('#file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result);const src=j['all-data.json']||j;if(!COLS.some(c=>Array.isArray(src[c])))throw new Error('不是木子工作台的数据');
+ $('#file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result);const src=j['all-data.json']||j;if(!COLS.some(c=>Array.isArray(src[c])))throw new Error('不是可识别的数据（支持本 App 新旧版本及桌面版导出）');
    const cnt=COLS.reduce((s,c)=>s+(src[c]||[]).length,0);if(!confirm(`将导入 ${cnt} 条记录并覆盖本机数据，继续？`))return;
-   download('muzi-mobile-before-import-'+ts()+'.json',JSON.stringify(exportObj()));
+   download('lee-time-before-import-'+ts()+'.json',JSON.stringify(exportObj()));
    const d=blank();COLS.forEach(c=>d[c]=(src[c]||[]).map(x=>Object.assign({deleted_at:null},x)));d.settings=Object.assign(d.settings,src.settings||{});d.trash=[];D=d;save();applyLook();toast('导入完成');render()}catch(err){alert('导入失败：'+err.message)}};r.readAsText(f);e.target.value=''};
  $('#clr').onclick=()=>{if(!confirm('清空全部数据？建议先导出备份'))return;if(prompt('输入“清空”确认')!=='清空')return;const s=D.settings;D=blank();D.settings=s;save();render();toast('已清空')};
  if($('#pst'))navigator.storage.persisted().then(p=>{$('#pst').textContent=p?'存储已持久化':'存储未持久化（建议添加到主屏幕并定期导出）'})};
@@ -291,8 +291,8 @@ function unlockAudio(){try{AC=AC||new (window.AudioContext||window.webkitAudioCo
 function beep(){if(D.settings.reminderSound===false||!AC)return;const v=D.settings.reminderVolume??0.6;const t=AC.currentTime;[0,0.25].forEach(o=>{const os=AC.createOscillator(),g=AC.createGain();os.type='square';os.frequency.value=o?1320:880;g.gain.setValueAtTime(0.0001,t+o);g.gain.exponentialRampToValueAtTime(Math.max(0.001,v*0.4),t+o+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+o+0.2);os.connect(g).connect(AC.destination);os.start(t+o);os.stop(t+o+0.22)})}
 function startRing(){stopRing();const f=()=>{beep();if(navigator.vibrate)try{navigator.vibrate([300,150,300])}catch(e){}};f();ringT=setInterval(f,1500)}
 function stopRing(){clearInterval(ringT);ringT=null;if(navigator.vibrate)try{navigator.vibrate(0)}catch(e){}}
-async function sysNotify(x,late){if(!('Notification' in window)||Notification.permission!=='granted'||notified.has(x.id+'@'+x.due))return;notified.add(x.id+'@'+x.due);const body=(late?'（补提醒）':'')+'任务已到结束时间：'+x.title;try{const r=await navigator.serviceWorker?.getRegistration();if(r){await r.showNotification('木子工作台 · 任务结束',{body,tag:'muzi-'+x.id,renotify:true,requireInteraction:true,icon:'icons/icon-192.png',badge:'icons/icon-192.png',data:{id:x.id,url:location.pathname+'#plan'}})}else new Notification('木子工作台 · 任务结束',{body,tag:'muzi-'+x.id})}catch(e){console.warn(e)}}
-async function scheduleTriggers(){if(!triggerSupported()||Notification.permission!=='granted')return;const r=await navigator.serviceWorker?.getRegistration();if(!r)return;for(const x of live('planItems')){const d=dueAt(x);if(x.status==='done'||x.reminder_ack_at||!d||d<Date.now())continue;try{await r.showNotification('木子工作台 · 任务结束',{body:'任务已到结束时间：'+x.title,tag:'muzi-'+x.id,showTrigger:new window.TimestampTrigger(d),data:{id:x.id,url:location.pathname+'#plan'}})}catch(e){}}}
+async function sysNotify(x,late){if(!('Notification' in window)||Notification.permission!=='granted'||notified.has(x.id+'@'+x.due))return;notified.add(x.id+'@'+x.due);const body=(late?'（补提醒）':'')+'任务已到结束时间：'+x.title;try{const r=await navigator.serviceWorker?.getRegistration();if(r){await r.showNotification('Lee悦时间安排 · 任务结束',{body,tag:'muzi-'+x.id,renotify:true,requireInteraction:true,icon:'icons/icon-192.png',badge:'icons/icon-192.png',data:{id:x.id,url:location.pathname+'#plan'}})}else new Notification('Lee悦时间安排 · 任务结束',{body,tag:'muzi-'+x.id})}catch(e){console.warn(e)}}
+async function scheduleTriggers(){if(!triggerSupported()||Notification.permission!=='granted')return;const r=await navigator.serviceWorker?.getRegistration();if(!r)return;for(const x of live('planItems')){const d=dueAt(x);if(x.status==='done'||x.reminder_ack_at||!d||d<Date.now())continue;try{await r.showNotification('Lee悦时间安排 · 任务结束',{body:'任务已到结束时间：'+x.title,tag:'muzi-'+x.id,showTrigger:new window.TimestampTrigger(d),data:{id:x.id,url:location.pathname+'#plan'}})}catch(e){}}}
 function dueList(){const n=Date.now();const l=live('planItems').filter(x=>x.status!=='done'&&!x.reminder_ack_at&&dueAt(x)&&dueAt(x)<=n&&n-dueAt(x)<24*3600000).map(x=>({id:x.id,title:x.title,due:dueAt(x),end:endAt(x)}));if(TEST_REM&&TEST_REM.due<=n)l.unshift(TEST_REM);return l.sort((a,b)=>a.due-b.due)}
 let showing=null;
 function showAlarm(list){const x=list[0];const late=Date.now()-x.due>90000;
