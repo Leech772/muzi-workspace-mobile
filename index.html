@@ -65,6 +65,12 @@ nav.tabs a .i{font-size:22px;line-height:1}nav.tabs a.on{color:var(--ac);font-we
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom));background:#222;color:#fff;padding:10px 16px;border-radius:99px;z-index:30;font-size:14px;max-width:90vw}
 .empty{color:var(--mut);text-align:center;padding:14px 0;font-size:14px}
 .timer{font-variant-numeric:tabular-nums;font-size:28px;font-weight:700}
+.rem{font-size:12px}.cd{font-size:12px;color:var(--ac)}.cd.over{color:var(--bad);font-weight:600}
+.alarm{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px)}
+.alarm .box{width:100%;max-width:420px;background:var(--bg);color:var(--fg);border:var(--bw) solid var(--bd);border-radius:24px;padding:24px 18px;text-align:center;box-shadow:var(--sh)}
+.alarm .bell{font-size:56px;line-height:1;display:inline-block;animation:ring .8s infinite}.alarm h3{font-size:22px;margin:10px 0 4px;word-break:break-word}.alarm .acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.alarm .acts button{min-height:52px;font-size:17px}
+.alarm .more{color:var(--mut);font-size:13px;margin-top:8px}
+@keyframes ring{0%,100%{transform:rotate(0)}25%{transform:rotate(-14deg)}75%{transform:rotate(14deg)}}
 </style></head>
 <body>
 <header><button class="back" id="back" hidden>‹ 返回</button><img src="icons/muzi-mark.svg" alt=""/><h1 id="title">木子工作台</h1><button class="ib" id="themeBtn" aria-label="切换深浅色">◐</button></header>
@@ -135,11 +141,11 @@ const MEAL={breakfast:'早餐',lunch:'午餐',dinner:'晚餐',snack:'加餐'};
 const ENT={wishlist:'想玩',active:'进行中',paused:'暂停',completed:'已完成'};
 const prSort={high:0,medium:1,low:2};
 
-function planRow(x){return `<div class="row ${x.status==='done'?'done':''}" data-id="${x.id}"><button class="chk" data-act="tog" aria-label="完成">${x.status==='done'?'✓':''}</button><div class="grow" data-act="edit"><div class="t">${esc(x.title)}</div><div class="mut"><span class="tag ${x.priority}">${PRI[x.priority]||'中'}</span>${x.start_time?esc(x.start_time)+' · ':''}${x.estimated_minutes?x.estimated_minutes+' 分钟':''}</div></div>${x.status!=='done'?'<button class="btn sm" data-act="defer">延期</button>':''}</div>`}
-function planEdit(x){sheet(x?'编辑计划':'新增计划',[{name:'title',label:'标题',value:x?.title},{name:'plan_date',label:'日期',type:'date',value:x?.plan_date||state.planDate},{name:'start_time',label:'开始时间',type:'time',value:x?.start_time,req:false},{name:'estimated_minutes',label:'预计分钟',type:'number',value:x?.estimated_minutes},{name:'priority',label:'优先级',type:'select',value:x?.priority||'medium',options:Object.entries(PRI)},{name:'notes',label:'备注',type:'textarea',value:x?.notes}],o=>{o.start_time=o.start_time||null;x?upd('planItems',x.id,o):ins('planItems',Object.assign({status:'todo',source_module:null,source_entity_type:null,source_entity_id:null,complete_source:0,completed_at:null},o))},x?()=>del('planItems',x.id):null)}
+function planRow(x){return `<div class="row ${x.status==='done'?'done':''}" data-id="${x.id}"><button class="chk" data-act="tog" aria-label="完成">${x.status==='done'?'✓':''}</button><div class="grow" data-act="edit"><div class="t">${esc(x.title)}</div><div class="mut"><span class="tag ${x.priority}">${PRI[x.priority]||'中'}</span>${x.start_time?esc(x.start_time)+(endHM(x)?'–'+endHM(x):'')+' · ':''}${x.estimated_minutes?x.estimated_minutes+' 分钟':''}${x.remind_at_end&&endAt(x)?` <span class="rem" title="结束时提醒">🔔${x.remind_before_minutes?'提前'+x.remind_before_minutes+'分':''}</span>`:''}${endAt(x)&&x.status!=='done'?` <span class="cd ${endAt(x)<Date.now()?'over':''}" data-cd="${x.id}">${cdText(x)}</span>`:''}</div></div>${x.status!=='done'?'<button class="btn sm" data-act="defer">延期</button>':''}</div>`}
+function planEdit(x){sheet(x?'编辑计划':'新增计划',[{name:'title',label:'标题',value:x?.title},{name:'plan_date',label:'日期',type:'date',value:x?.plan_date||state.planDate},{name:'start_time',label:'开始时间',type:'time',value:x?.start_time,req:false},{name:'end_time',label:'结束时间（或填下方预计分钟）',type:'time',value:x?endHM(x):'',req:false},{name:'estimated_minutes',label:'预计分钟',type:'number',value:x?.estimated_minutes},{name:'remind_at_end',label:'结束时提醒',type:'select',value:String(x?.remind_at_end??1),options:[['1','开 🔔'],['0','关']]},{name:'remind_before_minutes',label:'提前提醒',type:'select',value:String(x?.remind_before_minutes??0),options:[['0','准点'],['5','提前 5 分钟'],['10','提前 10 分钟']]},{name:'priority',label:'优先级',type:'select',value:x?.priority||'medium',options:Object.entries(PRI)},{name:'notes',label:'备注',type:'textarea',value:x?.notes}],o=>{o.start_time=o.start_time||null;if(o.start_time&&o.end_time){let m=hm2min(o.end_time)-hm2min(o.start_time);if(m<=0)m+=1440;o.estimated_minutes=m}delete o.end_time;o.remind_at_end=+o.remind_at_end;o.remind_before_minutes=+o.remind_before_minutes;if(o.remind_at_end&&!o.start_time)toast('未设开始时间，无法计算结束提醒');o.reminder_ack_at=null;o.reminder_snooze_until=null;x?upd('planItems',x.id,o):ins('planItems',Object.assign({status:'todo',source_module:null,source_entity_type:null,source_entity_id:null,complete_source:0,completed_at:null},o))},x?()=>del('planItems',x.id):null)}
 function bindPlan(){on('[data-act]','click',(el)=>{const id=el.closest('[data-id]').dataset.id;const x=get('planItems',id);const a=el.dataset.act;
  if(a==='tog'){const d=x.status!=='done';upd('planItems',id,{status:d?'done':'todo',completed_at:d?now():null});render()}
- else if(a==='defer'){upd('planItems',id,{plan_date:addDay(x.plan_date,1)});toast('已延期到 '+x.plan_date);render()}
+ else if(a==='defer'){upd('planItems',id,{plan_date:addDay(x.plan_date,1),reminder_ack_at:null,reminder_snooze_until:null});toast('已延期到 '+x.plan_date);render()}
  else if(a==='edit')planEdit(x)})}
 const plansOn=d=>live('planItems').filter(x=>x.plan_date===d).sort((a,b)=>(a.status==='done')-(b.status==='done')||prSort[a.priority]-prSort[b.priority]||(a.start_time||'99').localeCompare(b.start_time||'99'));
 const kcalOf=mid=>live('mealItems').filter(i=>i.meal_id===mid).reduce((s,i)=>s+(+i.calories||0),0);
@@ -147,13 +153,13 @@ const kcalDay=d=>live('meals').filter(m=>m.meal_date===d&&m.entry_kind==='actual
 const target=()=>{const t=live('nutritionTargets').filter(t=>t.effective_date<=today()).sort((a,b)=>b.effective_date.localeCompare(a.effective_date))[0];return t?.calories||null};
 
 const V={},B={};
-V.home=()=>{const ps=plansOn(today());const dn=ps.filter(x=>x.status==='done').length;const pct=ps.length?Math.round(dn/ps.length*100):0;
+V.home=()=>{const nx=nextEnding();const nxCard=nx?`<div class="card nextcard"><h2>下一个要结束的任务 <span>${nx.remind_at_end?'🔔':''}</span></h2><div class="row" data-id="${nx.id}"><div class="grow" data-act="edit"><div class="t">${esc(nx.title)}</div><div class="mut">${nx.start_time}–${endHM(nx)} · <span class="cd ${endAt(nx)<Date.now()?'over':''}" data-cd="${nx.id}">${cdText(nx)}</span></div></div></div></div>`:'';const ps=plansOn(today());const dn=ps.filter(x=>x.status==='done').length;const pct=ps.length?Math.round(dn/ps.length*100):0;
  const w=live('workouts').filter(x=>x.workout_date===today());const k=kcalDay(today());const tg=target();
  const memos=live('quickMemos').filter(m=>!m.archived_at).sort((a,b)=>b.created_at.localeCompare(a.created_at));
  const g=live('entertainmentItems').filter(x=>x.status==='active');
  return `<div class="card"><h2>今日进度 <span class="mut">${today()}</span></h2><div class="bar"><i style="width:${pct}%"></i></div><p class="mut" style="margin:6px 0 10px">计划完成 ${dn}/${ps.length}（${pct}%）</p>
  <div class="grid3"><a class="stat" href="#plan" style="color:inherit;text-decoration:none"><b>${ps.length-dn}</b><span>待完成</span></a><a class="stat" href="#fit" style="color:inherit;text-decoration:none"><b>${w.length}</b><span>今日训练</span></a><a class="stat" href="#diet" style="color:inherit;text-decoration:none"><b>${k}</b><span>${tg?'/'+tg+' ':''}千卡</span></a></div></div>
- <div class="card"><h2>快速备忘</h2><div class="inline"><input id="memo" placeholder="想到什么，先记下…" enterkeyhint="done"/><button class="pri" id="memoAdd">记</button></div>
+ ${nxCard}<div class="card"><h2>快速备忘</h2><div class="inline"><input id="memo" placeholder="想到什么，先记下…" enterkeyhint="done"/><button class="pri" id="memoAdd">记</button></div>
  ${memos.slice(0,20).map(m=>`<div class="row" data-id="${m.id}"><div class="grow t">${esc(m.content)}<div class="mut">${loc(m.created_at)}</div></div><button class="btn sm" data-m="plan">转计划</button><button class="ib" data-m="arc" aria-label="归档">✓</button></div>`).join('')||'<div class="empty">暂无备忘</div>'}</div>
  <div class="card"><h2>今日待办 <a href="#plan" class="mut">全部 ›</a></h2>${ps.filter(x=>x.status!=='done').slice(0,5).map(planRow).join('')||'<div class="empty">今天的计划都完成了 🎉</div>'}</div>
  ${g.length?`<div class="card"><h2>进行中的娱乐 <a href="#game" class="mut">›</a></h2>${g.slice(0,3).map(x=>`<div class="row"><div class="grow">${esc(x.name)}<div class="mut">${esc(x.progress||'')}</div></div></div>`).join('')}</div>`:''}`};
@@ -242,15 +248,24 @@ B.trash=()=>{on('[data-r]','click',el=>{const t=D.trash.find(t=>t.id===el.closes
 V.settings=()=>{const n=COLS.reduce((s,c)=>s+live(c).length,0);const sz=(localStorage.getItem(LS)||'').length;
  return `<div class="card"><h2>外观</h2><label>风格</label><div class="seg" id="ap">${[['liquid','流光玻璃'],['notebook','Notion 笔记'],['neo','Neo-Brutalism']].map(([k,l])=>`<button data-ap="${k}" class="${D.settings.appearance===k?'on':''}">${l}</button>`).join('')}</div>
  <label>深浅色</label><div class="seg">${[['light','浅色'],['dark','深色']].map(([k,l])=>`<button data-th="${k}" class="${D.settings.theme===k?'on':''}">${l}</button>`).join('')}</div></div>
+ <div class="card" id="remCard"><h2>任务结束提醒</h2>
+ <div class="row"><div class="grow">提醒音</div><button class="btn sm ${D.settings.reminderSound!==false?'pri':''}" id="sndTog">${D.settings.reminderSound!==false?'开':'关'}</button></div>
+ <div class="row"><div class="grow">音量 <input type="range" id="vol" min="0" max="1" step="0.1" value="${D.settings.reminderVolume??0.6}" aria-label="提醒音量" style="min-height:32px;padding:0"/></div><button class="btn sm" id="tryS">试听</button></div>
+ <div class="row"><div class="grow">系统通知<div class="mut" id="nst">${notifStatus()}</div></div><button class="btn sm" id="nreq">开启通知</button></div>
+ <button class="pri" id="testRem" style="width:100%;margin-top:8px">测试提醒（10 秒后）</button>
+ <p class="mut">App 打开（或刚切回）时一定会弹全屏提醒并响铃；错过的提醒回到 App 时补弹。系统通知仅在 App 仍在后台存活时尽力发送：本应用无服务器推送，iOS 杀掉 App 后无法保证准点。${triggerSupported()?'本浏览器支持定时通知（Notification Triggers），已用于预约。':'本浏览器不支持定时通知（Notification Triggers）。'}</p></div>
  <div class="card"><h2>数据</h2><p class="mut">共 ${n} 条记录 · 约 ${(sz/1024).toFixed(1)} KB · 仅保存在本机</p>
  <div class="grid2"><button class="pri" id="exp">导出 JSON</button><button id="imp">导入 JSON</button></div>
  <p class="mut">导出格式与桌面版导出 zip 内 <b>all-data.json</b> 一致，可互相导入（桌面版 zip 需先解压取出 all-data.json）。导入会<b>覆盖</b>本机数据，导入前自动下载一份当前备份。</p>
  <input type="file" id="file" accept="application/json,.json" hidden/>
  <button class="btn bad" id="clr" style="width:100%;margin-top:6px">清空全部数据</button></div>
- <div class="card"><h2>关于</h2><p class="mut">木子工作台 Mobile 原型 v0.1 · 离线 PWA · ${navigator.storage&&navigator.storage.persist?'<span id="pst">检查持久化…</span>':''}</p></div>`};
+ <div class="card"><h2>关于</h2><p class="mut">木子工作台 Mobile 原型 v0.2（任务结束提醒） · 离线 PWA · ${navigator.storage&&navigator.storage.persist?'<span id="pst">检查持久化…</span>':''}</p></div>`};
 function download(name,text){const b=new Blob([text],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
-function exportObj(){const o={};COLS.forEach(c=>o[c]=D[c].slice());/* 含软删除记录，便于桌面版合并删除 */o.settings=D.settings;o.trash=D.trash.filter(t=>get(t.collection,t.entity_id)?.deleted_at);o._meta={exportedAt:now(),app:'MuziWorkspace',source:'mobile',formatVersion:1};return o}
-B.settings=()=>{on('[data-ap]','click',el=>{D.settings.appearance=el.dataset.ap;save();applyLook();render()});on('[data-th]','click',el=>{D.settings.theme=el.dataset.th;save();applyLook();render()});
+function exportObj(){const o={};COLS.forEach(c=>o[c]=D[c].slice());/* 含软删除记录，便于桌面版合并删除 */o.settings=D.settings;o.trash=D.trash.filter(t=>get(t.collection,t.entity_id)?.deleted_at);o._meta={exportedAt:now(),app:'MuziWorkspace',source:'mobile',formatVersion:1,mobileOnlyFields:{planItems:['remind_at_end','remind_before_minutes','reminder_snooze_until','reminder_ack_at']}};return o}
+B.settings=()=>{$('#sndTog').onclick=()=>{D.settings.reminderSound=D.settings.reminderSound===false;save();render()};$('#vol').onchange=e=>{D.settings.reminderVolume=+e.target.value;save()};$('#tryS').onclick=()=>{unlockAudio();beep();setTimeout(beep,700)};
+ $('#nreq').onclick=async()=>{if(!('Notification' in window)){alert('当前浏览器不支持通知。iOS 需 16.4+，并先“添加到主屏幕”后从主屏幕图标打开。');return}const r=await Notification.requestPermission();$('#nst').textContent=notifStatus();toast(r==='granted'?'已开启通知':'未授权通知')};
+ $('#testRem').onclick=()=>{unlockAudio();TEST_REM={id:'__test__',title:'测试提醒',due:Date.now()+10000};setTimeout(checkReminders,10050);toast('10 秒后触发测试提醒，可切到后台试试');};
+on('[data-ap]','click',el=>{D.settings.appearance=el.dataset.ap;save();applyLook();render()});on('[data-th]','click',el=>{D.settings.theme=el.dataset.th;save();applyLook();render()});
  const ts=()=>now().replace(/[:.]/g,'-');
  $('#exp').onclick=()=>{download('muzi-mobile-'+ts()+'.json',JSON.stringify(exportObj(),null,2));toast('已导出')};
  $('#imp').onclick=()=>$('#file').click();
@@ -261,7 +276,47 @@ B.settings=()=>{on('[data-ap]','click',el=>{D.settings.appearance=el.dataset.ap;
  $('#clr').onclick=()=>{if(!confirm('清空全部数据？建议先导出备份'))return;if(prompt('输入“清空”确认')!=='清空')return;const s=D.settings;D=blank();D.settings=s;save();render();toast('已清空')};
  if($('#pst'))navigator.storage.persisted().then(p=>{$('#pst').textContent=p?'存储已持久化':'存储未持久化（建议添加到主屏幕并定期导出）'})};
 
-applyLook();render();
+/* ---------- 任务结束提醒 ---------- */
+const hm2min=t=>{const [h,m]=String(t).split(':').map(Number);return h*60+(m||0)};
+function endAt(x){if(!x||!x.start_time||!x.estimated_minutes)return null;const d=new Date(x.plan_date+'T'+x.start_time+':00');return d.getTime()+x.estimated_minutes*60000}
+function endHM(x){const e=endAt(x);if(!e)return '';const d=new Date(e);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+function dueAt(x){const e=endAt(x);if(!e||!x.remind_at_end)return null;if(x.reminder_snooze_until)return Date.parse(x.reminder_snooze_until);return e-(x.remind_before_minutes||0)*60000}
+function cdText(x){const e=endAt(x);if(!e)return '';const m=Math.round((e-Date.now())/60000);return m>=0?(m>=60?`还剩 ${Math.floor(m/60)} 小时 ${m%60} 分`:`还剩 ${m} 分钟`):`已逾期 ${-m>=60?Math.floor(-m/60)+' 小时 ':''}${-m%60} 分`}
+function nextEnding(){return live('planItems').filter(x=>x.status!=='done'&&endAt(x)&&endAt(x)>Date.now()-3600000).sort((a,b)=>endAt(a)-endAt(b))[0]||null}
+const triggerSupported=()=>typeof window.TimestampTrigger==='function'&&'Notification' in window&&'showTrigger' in Notification.prototype;
+function notifStatus(){if(!('Notification' in window))return '不支持（iOS 需 16.4+ 且从主屏幕打开）';return {granted:'已授权',denied:'已拒绝（请到系统设置里打开）',default:'未开启'}[Notification.permission]}
+let AC=null,ringT=null,TEST_REM=null;const notified=new Set();
+function unlockAudio(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume()}catch(e){}}
+['touchstart','click','keydown'].forEach(ev=>document.addEventListener(ev,unlockAudio,{once:true,passive:true}));
+function beep(){if(D.settings.reminderSound===false||!AC)return;const v=D.settings.reminderVolume??0.6;const t=AC.currentTime;[0,0.25].forEach(o=>{const os=AC.createOscillator(),g=AC.createGain();os.type='square';os.frequency.value=o?1320:880;g.gain.setValueAtTime(0.0001,t+o);g.gain.exponentialRampToValueAtTime(Math.max(0.001,v*0.4),t+o+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+o+0.2);os.connect(g).connect(AC.destination);os.start(t+o);os.stop(t+o+0.22)})}
+function startRing(){stopRing();const f=()=>{beep();if(navigator.vibrate)try{navigator.vibrate([300,150,300])}catch(e){}};f();ringT=setInterval(f,1500)}
+function stopRing(){clearInterval(ringT);ringT=null;if(navigator.vibrate)try{navigator.vibrate(0)}catch(e){}}
+async function sysNotify(x,late){if(!('Notification' in window)||Notification.permission!=='granted'||notified.has(x.id+'@'+x.due))return;notified.add(x.id+'@'+x.due);const body=(late?'（补提醒）':'')+'任务已到结束时间：'+x.title;try{const r=await navigator.serviceWorker?.getRegistration();if(r){await r.showNotification('木子工作台 · 任务结束',{body,tag:'muzi-'+x.id,renotify:true,requireInteraction:true,icon:'icons/icon-192.png',badge:'icons/icon-192.png',data:{id:x.id,url:location.pathname+'#plan'}})}else new Notification('木子工作台 · 任务结束',{body,tag:'muzi-'+x.id})}catch(e){console.warn(e)}}
+async function scheduleTriggers(){if(!triggerSupported()||Notification.permission!=='granted')return;const r=await navigator.serviceWorker?.getRegistration();if(!r)return;for(const x of live('planItems')){const d=dueAt(x);if(x.status==='done'||x.reminder_ack_at||!d||d<Date.now())continue;try{await r.showNotification('木子工作台 · 任务结束',{body:'任务已到结束时间：'+x.title,tag:'muzi-'+x.id,showTrigger:new window.TimestampTrigger(d),data:{id:x.id,url:location.pathname+'#plan'}})}catch(e){}}}
+function dueList(){const n=Date.now();const l=live('planItems').filter(x=>x.status!=='done'&&!x.reminder_ack_at&&dueAt(x)&&dueAt(x)<=n&&n-dueAt(x)<24*3600000).map(x=>({id:x.id,title:x.title,due:dueAt(x),end:endAt(x)}));if(TEST_REM&&TEST_REM.due<=n)l.unshift(TEST_REM);return l.sort((a,b)=>a.due-b.due)}
+let showing=null;
+function showAlarm(list){const x=list[0];const late=Date.now()-x.due>90000;
+ if(showing===x.id+'@'+x.due&&$('.alarm')){$('.alarm .more').textContent=list.length>1?`还有 ${list.length-1} 个提醒待处理`:'';return}
+ document.querySelectorAll('.alarm').forEach(a=>a.remove());showing=x.id+'@'+x.due;
+ const m=document.createElement('div');m.className='alarm';m.setAttribute('role','alertdialog');m.setAttribute('aria-label','任务结束提醒');
+ const endTxt=x.end?new Date(x.end).toTimeString().slice(0,5):'';
+ m.innerHTML=`<div class="box"><div class="bell">⏰</div><h3>${esc(x.title)}</h3><div class="mut">${late?'错过的提醒 · ':''}${x.end&&x.end>Date.now()?'即将到结束时间 '+endTxt:'已到结束时间'+(endTxt?' '+endTxt:'')}</div>
+ <div class="acts"><button class="pri" data-r="done">✓ 完成</button><button data-r="ok">知道了</button><button data-r="5">延后 5 分钟</button><button data-r="15">延后 15 分钟</button></div><div class="more">${list.length>1?`还有 ${list.length-1} 个提醒待处理`:''}</div></div>`;
+ document.body.appendChild(m);startRing();sysNotify(x,late);
+ m.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{const r=b.dataset.r;stopRing();m.remove();showing=null;
+  if(x.id==='__test__'){TEST_REM=r==='5'||r==='15'?{...x,due:Date.now()+r*60000}:null}
+  else if(r==='done')upd('planItems',x.id,{status:'done',completed_at:now(),reminder_ack_at:now()});
+  else if(r==='ok')upd('planItems',x.id,{reminder_ack_at:now()});
+  else upd('planItems',x.id,{reminder_snooze_until:new Date(Date.now()+r*60000).toISOString()});
+  toast(r==='done'?'已完成':r==='ok'?'已关闭提醒':'将在 '+r+' 分钟后再次提醒');render();setTimeout(checkReminders,300)})}
+function checkReminders(){const l=dueList();if(l.length)showAlarm(l);
+ document.querySelectorAll('[data-cd]').forEach(el=>{const x=get('planItems',el.dataset.cd);if(!x)return;el.textContent=cdText(x);el.classList.toggle('over',endAt(x)<Date.now())})}
+setInterval(checkReminders,5000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){unlockAudio();checkReminders()}});
+window.addEventListener('focus',checkReminders);window.addEventListener('pageshow',checkReminders);
+navigator.serviceWorker?.addEventListener?.('message',e=>{if(e.data&&e.data.type==='open-plan'){location.hash='plan';checkReminders()}});
+
+applyLook();render();setTimeout(()=>{checkReminders();scheduleTriggers()},500);
 if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
 if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script></body></html>
